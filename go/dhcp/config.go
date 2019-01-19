@@ -202,9 +202,9 @@ func (d *Interfaces) readConfig() {
 							sharedutils.Dec(ips)
 
 							DHCPScope.leaseRange = dhcp.IPRange(ip, ips)
-
+							algorithm, err := strconv.Atoi(ConfNet.Algorithm)
 							// Initialize dhcp pool
-							available := pool.NewDHCPPool(uint64(dhcp.IPRange(ip, ips)))
+							available := pool.NewDHCPPool(uint64(dhcp.IPRange(ip, ips)), strconv.Atoi(algorithm))
 
 							DHCPScope.available = available
 
@@ -213,8 +213,8 @@ func (d *Interfaces) readConfig() {
 
 							hwcache.OnEvicted(func(nic string, pool interface{}) {
 								go func() {
-									// Always wait 10 minutes before releasing the IP again
-									time.Sleep(10 * time.Minute)
+									// Always wait 30 seconds before releasing the IP again
+									time.Sleep(30 * time.Second)
 									log.LoggerWContext(ctx).Info(nic + " " + dhcp.IPAdd(DHCPScope.start, pool.(int)).String() + " Added back in the pool " + DHCPScope.role + " on index " + strconv.Itoa(pool.(int)))
 									DHCPScope.available.FreeIPIndex(uint64(pool.(int)))
 								}()
@@ -227,7 +227,7 @@ func (d *Interfaces) readConfig() {
 							DHCPScope.xid = xid
 							wg.Add(1)
 							go func() {
-								initiaLease(DHCPScope,ConfNet)
+								initiaLease(DHCPScope, ConfNet)
 								wg.Done()
 							}()
 							var options = make(map[dhcp.OptionCode][]byte)
@@ -267,8 +267,10 @@ func (d *Interfaces) readConfig() {
 						DHCPScope.leaseDuration = time.Duration(seconds) * time.Second
 						DHCPScope.leaseRange = dhcp.IPRange(net.ParseIP(ConfNet.DhcpStart), net.ParseIP(ConfNet.DhcpEnd))
 
+						algorithm, err := strconv.Atoi(ConfNet.Algorithm)
+
 						// Initialize dhcp pool
-						available := pool.NewDHCPPool(uint64(dhcp.IPRange(net.ParseIP(ConfNet.DhcpStart), net.ParseIP(ConfNet.DhcpEnd))))
+						available := pool.NewDHCPPool(uint64(dhcp.IPRange(net.ParseIP(ConfNet.DhcpStart), net.ParseIP(ConfNet.DhcpEnd))), algorithm)
 						DHCPScope.available = available
 
 						// Initialize hardware cache
@@ -276,8 +278,8 @@ func (d *Interfaces) readConfig() {
 
 						hwcache.OnEvicted(func(nic string, pool interface{}) {
 							go func() {
-								// Always wait 10 minutes before releasing the IP again
-								time.Sleep(10 * time.Minute)
+								// Always wait 30 seconds before releasing the IP again
+								time.Sleep(30 * time.Second)
 								log.LoggerWContext(ctx).Info(nic + " " + dhcp.IPAdd(DHCPScope.start, pool.(int)).String() + " Added back in the pool " + DHCPScope.role + " on index " + strconv.Itoa(pool.(int)))
 								DHCPScope.available.FreeIPIndex(uint64(pool.(int)))
 							}()
@@ -290,7 +292,7 @@ func (d *Interfaces) readConfig() {
 						DHCPScope.xid = xid
 						wg.Add(1)
 						go func() {
-							initiaLease(DHCPScope,ConfNet)
+							initiaLease(DHCPScope, ConfNet)
 							wg.Done()
 						}()
 
